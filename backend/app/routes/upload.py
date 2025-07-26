@@ -1,13 +1,15 @@
 import uuid
 import logging
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
 from qdrant_client.models import PointStruct
 
 from app.qdrant_client import client, COLLECTION_NAME, ensure_collection_exists
+from app.supabase_client import supabase
 from app.embeddings import model
 from app.utils import chunk_text, read_file_content, upload_to_supabase_storage
+from app.middlewares.auth_middleware import get_current_user
 
-router = APIRouter()
+router = APIRouter( dependencies=[Depends(get_current_user)] )
 logger = logging.getLogger(__name__)
 
 
@@ -20,9 +22,27 @@ async def upload_file(
 
      # Upload file to Supabase Storage
     file_url = await upload_to_supabase_storage(file, chat_id)
+
+    # Update chats with the file URL
+    try:
+        update_response = supabase.table("chats").update({
+            "file_url": file_url,
+            "file_name": file.filename
+        }).eq("id", chat_id).execute()
+
+        if update_response.error:
+            logger.error(f"Failed to update chat: {update_response.error.message}")
+            raise HTTPException(status_code=500, detail="Failed to update chat with file info.")
+        logger.info(f"Chat {chat_id} updated with file_url and file_name.")
+
+    except Exception as e:
+        logger.error(f"Chat update failed: {e}")
+        raise HTTPException(status_code=500, detail="Error updating chat metadata.")
     
     # Rewind file for reading (again)
     file.file.seek(0)
+
+    # Create embeddings and upload to Qdrant
 
     # Step 1: Read file content (PDF, TXT, or CSV)
     try:

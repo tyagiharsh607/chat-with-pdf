@@ -9,3 +9,6 @@ PyPDF2
 python-multipart
 supabase
 pandas
+python-jose
+pydantic
+pydantic[email]
