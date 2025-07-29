@@ -1,35 +1,51 @@
-from fastapi import Depends, HTTPException, status
+# auth_middleware.py
+from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
-from datetime import datetime
-from dotenv import load_dotenv
-import os
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_500_INTERNAL_SERVER_ERROR
+from app.supabase_client import get_supabase
+import logging
 
-# Configuration — Replace with your actual secret and algorithm
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-ALGORITHM = "HS256"
+security = HTTPBearer()
+logger = logging.getLogger(__name__)
 
-# Token scheme parser (Authorization: Bearer <token>)
-security = HTTPBearer(auto_error=False)
-
-def decode_access_token(token: str):
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    supabase = Depends(get_supabase)
+):
+    """
+    Verify JWT token with Supabase and return current user
+    """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        exp = payload.get("exp")
-        if exp and datetime.utcfromtimestamp(exp) < datetime.utcnow():
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
-        return payload
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
-    token = credentials.credentials
-    payload = decode_access_token(token)
-    user_id = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
-
-    return {"user_id": user_id}
+        token = credentials.credentials
+        
+        # Use Supabase to verify the token
+        user_response = supabase.auth.get_user(token)
+        
+        if user_response.user is None:
+            logger.warning("Invalid token provided")
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+        
+        user = user_response.user
+        
+        # Return user data in the format your app expects
+        return {
+            "user_id": user.id,
+            "email": user.email,
+            "created_at": user.created_at,
+            "last_sign_in_at": user.last_sign_in_at,
+            "email_verified": user.email_confirmed_at is not None,
+            "user": user  # Full user object if needed elsewhere
+        }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
+        )

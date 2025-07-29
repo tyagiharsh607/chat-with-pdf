@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Light theme colors (default) */
+:root {
+    /* Background Colors */
+    --color-bg-start: #f5f7fa;
+    --color-bg-end: #e2e4f0;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f1f3f8;
+    --color-surface-badge: #dfe3f5;
+    --color-surface-modal: #ffffff;
+    --color-surface-close: #e0e3f0;
+    --color-surface-close-hover: #cdd3ec;
+    --color-surface-table-head: #e8ebf8;
+    --color-surface-table-left: #f1f3fc;
+    --color-surface-recommended: #e3e6f8;
+
+    /* Text Colors */
+    --color-text-primary: #1b1e39;
+    --color-text-secondary: #1b1e39;
+    --color-text-muted: #2c2f4f;
+    --color-text-price: #2c2f4f;
+    --color-text-feature: #2c2f4f;
+
+    /* Brand Colors */
+    --color-brand-primary: #5D5FEF;
+    --color-brand-hover: #4A4CDD;
+    --color-brand-accent: #5D5FEF;
+
+    /* Border Colors */
+    --color-border-primary: #d5d9ea;
+    --color-border-brand: #5D5FEF;
+
+    /* Shadow Colors */
+    --color-shadow-badge: rgba(93, 95, 239, 0.2);
+    --color-shadow-action: rgba(93, 95, 239, 0.3);
+    --color-shadow-modal: rgba(93, 95, 239, 0.1);
+
+    /* Background Hover States */
+    --color-hover-brand: rgba(93, 95, 239, 0.1);
+}
+
+/* Dark theme colors */
+.dark {
+    /* Background Colors */
+    --color-bg-start: #0D0F2C;
+    --color-bg-end: #16192F;
+    --color-surface: #1B1E39;
+    --color-surface-hover: #2C2F4F;
+    --color-surface-badge: #2C2F4F;
+    --color-surface-modal: #1B1E39;
+    --color-surface-close: #2C2F4F;
+    --color-surface-close-hover: #3A3F66;
+    --color-surface-table-head: #2C2F4F;
+    --color-surface-table-left: #20233D;
+    --color-surface-recommended: #25294A;
+
+    /* Text Colors */
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #E5EAF5;
+    --color-text-muted: #A5ACC9;
+    --color-text-price: #A5ACC9;
+    --color-text-feature: #A5ACC9;
+
+    /* Brand Colors */
+    --color-brand-primary: #5D5FEF;
+    --color-brand-hover: #4A4CDD;
+    --color-brand-accent: #7280F9;
+
+    /* Border Colors */
+    --color-border-primary: #2C2F4F;
+    --color-border-brand: #5D5FEF;
+
+    /* Shadow Colors */
+    --color-shadow-badge: rgba(93, 95, 239, 0.4);
+    --color-shadow-action: rgba(93, 95, 239, 0.5);
+    --color-shadow-modal: rgba(93, 95, 239, 0.15);
+
+    /* Background Hover States */
+    --color-hover-brand: rgba(93, 95, 239, 0.15);
+}
+
+@theme {
+    /* Map variables to Tailwind colors */
+    --color-bg-start: var(--color-bg-start);
+    --color-bg-end: var(--color-bg-end);
+    --color-surface: var(--color-surface);
+    --color-surface-hover: var(--color-surface-hover);
+    --color-surface-badge: var(--color-surface-badge);
+    --color-surface-modal: var(--color-surface-modal);
+    --color-surface-close: var(--color-surface-close);
+    --color-surface-close-hover: var(--color-surface-close-hover);
+    --color-surface-table-head: var(--color-surface-table-head);
+    --color-surface-table-left: var(--color-surface-table-left);
+    --color-surface-recommended: var(--color-surface-recommended);
+
+    --color-text-primary: var(--color-text-primary);
+    --color-text-secondary: var(--color-text-secondary);
+    --color-text-muted: var(--color-text-muted);
+    --color-text-price: var(--color-text-price);
+    --color-text-feature: var(--color-text-feature);
+
+    --color-brand-primary: var(--color-brand-primary);
+    --color-brand-hover: var(--color-brand-hover);
+    --color-brand-accent: var(--color-brand-accent);
+
+    --color-border-primary: var(--color-border-primary);
+    --color-border-brand: var(--color-border-brand);
+
+    --color-shadow-badge: var(--color-shadow-badge);
+    --color-shadow-action: var(--color-shadow-action);
+    --color-shadow-modal: var(--color-shadow-modal);
+
+    --color-hover-brand: var(--color-hover-brand);
+}
+
+/* Custom gradient utility */
+@layer utilities {
+    .bg-gradient-theme {
+        background: linear-gradient(to right, var(--color-bg-start), var(--color-bg-end));
+    }
+}
+
+/* Global styles for smooth theme transitions */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
