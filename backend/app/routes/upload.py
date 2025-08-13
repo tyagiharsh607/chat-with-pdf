@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
 from qdrant_client.models import PointStruct
 
-from app.qdrant_client import client, COLLECTION_NAME, ensure_collection_exists
+from app.qdrant_client import qdrant, COLLECTION_NAME, ensure_collection_exists,ensure_payload_index
 from app.supabase_client import supabase
 from app.embeddings import model
 from app.utils import chunk_text, read_file_content, upload_to_supabase_storage
@@ -16,10 +16,22 @@ logger = logging.getLogger(__name__)
 @router.post("/")
 async def upload_file(
     chat_id: str = Query(..., description="Unique chat ID associated with the file."),
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
 ):
     logger.info(f"Received file '{file.filename}' for chat {chat_id}")
 
+    # Check that chat belongs to user
+    try:
+        chat_res = supabase.table("chats").select("user_id").eq("id", chat_id).single().execute()
+        if not chat_res.data or chat_res.data["user_id"] != current_user["user_id"]:
+            logger.warning(f"User {current_user['user_id']} is NOT owner of chat {chat_id}")
+            raise HTTPException(status_code=403, detail="You do not have permission to upload to this chat.")
+        logger.info("Ownership check passed.")
+    except Exception as e:
+        logger.error(f"Chat ownership check failed: {e}")
+        raise HTTPException(status_code=403, detail="Chat ownership validation failed.")
+    
      # Upload file to Supabase Storage
     file_url = await upload_to_supabase_storage(file, chat_id)
 
@@ -29,16 +41,11 @@ async def upload_file(
             "file_url": file_url,
             "file_name": file.filename
         }).eq("id", chat_id).execute()
-
-        if update_response.error:
-            logger.error(f"Failed to update chat: {update_response.error.message}")
-            raise HTTPException(status_code=500, detail="Failed to update chat with file info.")
         logger.info(f"Chat {chat_id} updated with file_url and file_name.")
-
     except Exception as e:
         logger.error(f"Chat update failed: {e}")
         raise HTTPException(status_code=500, detail="Error updating chat metadata.")
-    
+
     # Rewind file for reading (again)
     file.file.seek(0)
 
@@ -79,7 +86,13 @@ async def upload_file(
         ensure_collection_exists()
     except Exception as e:
         logger.error(f"Qdrant collection error: {e}")
-        raise HTTPException(status_code=500, detail="Qdrant setup failed.")
+        raise HTTPException(status_code=500, detail="Qdrant collection setup failed.")
+    
+    try:
+        ensure_payload_index()
+    except Exception as e:
+        logger.error(f"Qdrant payload index error: {e}")
+        raise HTTPException(status_code=500, detail="Qdrant index setup failed.")
 
     # Step 5: Prepare points and insert into Qdrant
     points = []
@@ -95,7 +108,7 @@ async def upload_file(
             logger.warning(f"Skipping chunk due to error: {e}")
 
     try:
-        client.upsert(collection_name=COLLECTION_NAME, points=points)
+        qdrant.upsert(collection_name=COLLECTION_NAME, points=points)
         logger.info(f"Uploaded {len(points)} points to Qdrant.")
     except Exception as e:
         logger.error(f"Qdrant upload failed: {e}")

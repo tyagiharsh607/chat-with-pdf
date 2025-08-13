@@ -148,3 +148,44 @@ async def get_profile(current_user = Depends(get_current_user)):
             status_code=HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch user profile"
         )
+
+
+
+@router.post("/refresh-token")
+async def refresh_access_token(refresh_token: str, supabase=Depends(get_supabase)):
+    """
+    Refresh access token using refresh token
+    """
+    try:
+        logger.info("Token refresh request received")
+        
+        # Use Supabase Python client to refresh the session
+        result = supabase.auth.refresh_session(refresh_token)
+        
+        if result.session is None:
+            logger.error("Failed to refresh session - invalid refresh token")
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        session = result.session
+        user = result.user
+        
+        logger.info(f"Token refreshed successfully for user: {user.email}")
+        
+        return AuthResponse(
+            access_token=session.access_token,
+            refresh_token=session.refresh_token,  # New refresh token
+            user_id=user.id,
+            email=user.email,
+            message="Token refreshed successfully",
+            requires_confirmation=False
+        )
+        
+    except Exception as e:
+        logger.error(f"Token refresh failed: {e}")
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Token refresh failed"
+        )

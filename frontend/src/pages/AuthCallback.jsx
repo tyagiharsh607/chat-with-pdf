@@ -1,7 +1,8 @@
-// src/pages/AuthCallback.jsx - Using profile route
+// src/pages/AuthCallback.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { apiClient } from "../services/apiClient";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -30,48 +31,34 @@ const AuthCallback = () => {
         if (accessToken && refreshToken) {
           processed = true;
 
-          // Fetch user profile from your backend using the access token
           try {
-            const response = await fetch(
-              `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`,
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
+            // Fetch user profile with the fresh access token (manually attach header)
+            const response = await apiClient.get("/auth/profile", {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
 
-            if (response.ok) {
-              const userProfile = await response.json();
+            const userProfile = response.data;
 
-              const authResponse = {
-                access_token: accessToken,
-                refresh_token: refreshToken,
-                user_id: userProfile.user_id,
-                email: userProfile.email,
-                message: "Email confirmation successful",
-                requires_confirmation: false,
-              };
+            const authResponse = {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+              user_id: userProfile.user_id,
+              email: userProfile.email,
+              message: "Email confirmation successful",
+              requires_confirmation: false,
+            };
 
-              const loginResult = login(authResponse);
+            const loginResult = login(authResponse);
 
-              if (loginResult.success) {
-                window.history.replaceState(
-                  null,
-                  null,
-                  window.location.pathname
-                );
-                navigate("/", { replace: true });
-              } else {
-                setError("Failed to complete authentication");
-                setTimeout(() => navigate("/login"), 2000);
-              }
-            } else if (response.status === 401) {
-              setError("Invalid authentication token");
-              setTimeout(() => navigate("/login"), 2000);
+            if (loginResult.success) {
+              // Clean the URL hash part to avoid token exposure
+              window.history.replaceState(null, null, window.location.pathname);
+
+              // Redirect to home page
+              navigate("/", { replace: true });
             } else {
-              throw new Error("Failed to fetch user profile");
+              setError("Failed to complete authentication");
+              setTimeout(() => navigate("/login"), 2000);
             }
           } catch (profileError) {
             console.error("Profile fetch error:", profileError);
@@ -89,6 +76,7 @@ const AuthCallback = () => {
       }
     };
 
+    // Slight delay to ensure location.hash is populated
     timeoutId = setTimeout(handleAuthCallback, 100);
 
     return () => {

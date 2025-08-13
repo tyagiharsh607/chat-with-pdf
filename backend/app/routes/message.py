@@ -1,0 +1,85 @@
+from fastapi import APIRouter, Depends, HTTPException
+from app.middlewares.auth_middleware import get_current_user
+from app.models.message import MessageCreate, MessageInDB
+from app.supabase_client import supabase
+from uuid import uuid4
+from datetime import datetime
+from app.rag import generate_assistant_response
+
+router = APIRouter()
+
+@router.post("/", response_model=list[MessageInDB])
+def create_message(message: MessageCreate, current_user: dict = Depends(get_current_user)):
+    chat_id = message.chat_id
+    print(f"Creating message for chat_id: {chat_id} by user: {current_user['user_id']}")
+    
+
+    # verify current user owns the chat before inserting message
+    chat_res = supabase.table("chats").select("user_id").eq("id", chat_id).single().execute()
+    if not chat_res.data or chat_res.data["user_id"] != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to add messages to this chat")
+
+    user_message_data = {
+        "id": str(uuid4()),
+        "chat_id": chat_id,
+        "role": message.role,
+        "content": message.content,
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        res = supabase.table("messages").insert(user_message_data).execute()
+    except Exception as e:
+        print(f"Error inserting message: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to store message: {e}")
+
+
+     # Generate assistant response using RAG
+    try:
+        assistant_text = generate_assistant_response(message.content, chat_id)
+        
+    except Exception as e:
+        print(f"Error generating assistant response: {e}")
+        raise HTTPException(status_code=500, detail=f"Assistant generation failed: {e}")
+
+    # Insert assistant message into DB
+    assistant_message_data = {
+        "id": str(uuid4()),
+        "chat_id": chat_id,
+        "role": "assistant",
+        "content": assistant_text,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    try:
+        supabase.table("messages").insert(assistant_message_data).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to store assistant message: {e}")
+
+
+      # 5️⃣ Return updated list of messages for this chat
+    try:
+        msg_res = supabase.table("messages").select("*").eq("chat_id", chat_id).order("created_at").execute()
+        messages = msg_res.data if hasattr(msg_res, "data") else msg_res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch updated messages: {e}")
+
+    return messages
+    
+
+@router.get("/{chat_id}", response_model=list[MessageInDB])
+def get_messages(chat_id: str, current_user: dict = Depends(get_current_user)):
+    # Verify chat ownership before fetching messages
+    chat_res = supabase.table("chats").select("user_id").eq("id", chat_id).single().execute()
+    
+    if not chat_res.data or chat_res.data["user_id"] != current_user["user_id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to view messages of this chat")
+
+    try:
+        res = supabase.table("messages").select("*").eq("chat_id", chat_id).order("created_at").execute()
+       
+    except Exception as e:
+        print(f"Error fetching messages: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch messages: {e}")
+
+    messages = res.data if hasattr(res, "data") else res
+    return messages

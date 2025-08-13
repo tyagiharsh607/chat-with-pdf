@@ -1,5 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 const AuthContext = createContext();
 
@@ -13,36 +14,83 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  const checkAuthStatus = () => {
+  // In your AuthContext.jsx
+  const refreshSession = async () => {
+    const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
+
+    if (!refreshToken) {
+      logout();
+      return false;
+    }
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/refresh-token`,
+        { refresh_token: refreshToken },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.status !== 200) {
+        logout();
+        return false;
+      }
+
+      const data = response.data;
+
+      // Update stored tokens with new ones
+      localStorage.setItem("chat_pdf_access_token", data.access_token);
+      localStorage.setItem("chat_pdf_refresh_token", data.refresh_token);
+      localStorage.setItem(
+        "chat_pdf_token_expires_at",
+        Date.now() + 3600 * 1000
+      ); // 1 hour
+
+      // Update user state
+      setUser((prev) => ({
+        ...prev,
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      logout();
+      return false;
+    }
+  };
+
+  // Update checkAuthStatus to use refresh instead of immediate logout
+  const checkAuthStatus = async () => {
     try {
       const accessToken = localStorage.getItem("chat_pdf_access_token");
       const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
       const expiresAt = localStorage.getItem("chat_pdf_token_expires_at");
 
-      if (accessToken && refreshToken && expiresAt) {
-        // Check if token is still valid
-        const now = Date.now();
-        const tokenExpiresAt = parseInt(expiresAt);
+      if (!accessToken || !refreshToken) {
+        clearAuthData();
+        return;
+      }
 
-        if (now < tokenExpiresAt) {
-          // Token is valid - fetch user profile or set basic user info
-          const userData = {
-            access_token: accessToken,
-            refresh_token: refreshToken,
-            // You might want to store user_id and email from the signup/login response
-            user_id: localStorage.getItem("chat_pdf_user_id"),
-            email: localStorage.getItem("chat_pdf_user_email"),
-          };
+      const now = Date.now();
+      const tokenExpiresAt = parseInt(expiresAt);
 
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          // Token expired - clear everything
+      if (now < tokenExpiresAt) {
+        // Token still valid
+        setUser({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          user_id: localStorage.getItem("chat_pdf_user_id"),
+          email: localStorage.getItem("chat_pdf_user_email"),
+        });
+        setIsAuthenticated(true);
+      } else {
+        // Token expired - try to refresh
+        const refreshed = await refreshSession();
+        if (!refreshed) {
+          // Refresh failed - user needs to login again
           clearAuthData();
         }
-      } else {
-        // No tokens found
-        clearAuthData();
       }
     } catch (error) {
       console.error("Error checking auth status:", error);
@@ -98,7 +146,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     clearAuthData();
-    // Optionally, you could call your backend logout endpoint here
+    // Optionally, we could call your backend logout endpoint here
     // await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${user?.access_token}` }});
   };
 

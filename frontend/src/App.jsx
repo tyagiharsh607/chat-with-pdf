@@ -10,7 +10,7 @@ import AuthCallback from "./pages/AuthCallback";
 function App() {
   return (
     <Router>
-      <Navbar />
+      {/* <Navbar /> */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />

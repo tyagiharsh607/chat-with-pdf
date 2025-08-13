@@ -1,4 +1,4 @@
-// src/services/auth.js
+import { apiClient } from "./apiClient";
 import axios from "axios";
 
 const API_BASE = `${import.meta.env.VITE_BACKEND_URL}/api`;
@@ -40,33 +40,14 @@ export const signupUser = async (data) => {
 };
 
 export const getUserProfile = async () => {
-  const token = localStorage.getItem("chat_pdf_access_token");
-
-  if (!token) {
-    throw new Error("No access token found");
-  }
-
   try {
-    const response = await fetch(
-      `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("Session expired. Please login again.");
-      }
-      throw new Error("Failed to fetch user profile");
-    }
-
-    return await response.json();
+    const response = await apiClient.get("/auth/profile");
+    return response.data;
   } catch (error) {
     console.error("Profile fetch error:", error);
-    throw error;
+    if (error.response?.status === 401) {
+      throw new Error("Session expired. Please login again.");
+    }
+    throw new Error("Failed to fetch user profile");
   }
 };

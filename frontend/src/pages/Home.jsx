@@ -1,103 +1,116 @@
-// src/components/TestCard.jsx
-import { useTheme } from "../hooks/useTheme";
+import { useState, useEffect } from "react";
+import SideChatBar from "../components/SideChatBar";
+import ChatInterface from "../components/ChatInterface";
+import { apiClient } from "../services/apiClient";
+import Navbar from "../components/Navbar";
 
-function Home() {
-  const { theme } = useTheme();
+const Home = () => {
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
+
+  // Fetch chats once on mount
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const response = await apiClient.get("/chats");
+        setChats(response.data || []);
+        if (response.data?.length > 0) {
+          setActiveChatId(response.data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch chats:", error);
+      }
+    };
+    fetchChats();
+  }, []);
+
+  // Create a new chat
+  const handleCreateChat = async () => {
+    const defaultTitle = "New Chat";
+    try {
+      const response = await apiClient.post("/chats", { title: defaultTitle });
+      setChats((prevChats) => [response.data, ...prevChats]);
+      setActiveChatId(response.data.id);
+    } catch (error) {
+      console.error("Failed to create chat:", error);
+    }
+  };
+
+  // Rename a chat by ID
+  const handleRenameChat = async (chatId, newTitle) => {
+    try {
+      const response = await apiClient.put(`/chats/${chatId}`, null, {
+        params: { title: newTitle },
+      });
+      setChats((prevChats) =>
+        prevChats.map((chat) =>
+          chat.id === chatId
+            ? { ...chat, title: response.data.title || newTitle }
+            : chat
+        )
+      );
+    } catch (error) {
+      console.error("Failed to rename chat:", error);
+    }
+  };
+
+  // Delete a chat by ID
+  const handleDeleteChat = async (chatId) => {
+    try {
+      await apiClient.delete(`/chats/${chatId}`);
+      setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
+      if (activeChatId === chatId) {
+        setActiveChatId(prevChats[0]?.id || null);
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error);
+    }
+  };
+
+  const handleFileUploaded = async () => {
+    try {
+      const response = await apiClient.get("/chats");
+      setChats(response.data || []);
+
+      // If the active chat was updated, set it again
+      if (activeChatId) {
+        const updatedChat = response.data.find(
+          (chat) => chat.id === activeChatId
+        );
+        if (updatedChat) {
+          setActiveChatId(updatedChat.id);
+        } else if (response.data.length > 0) {
+          setActiveChatId(response.data[0].id);
+        } else {
+          setActiveChatId(null);
+        }
+      }
+
+      console.log("Chats updated after file upload.");
+    } catch (error) {
+      console.error("Failed to refresh chats after upload:", error);
+    }
+  };
 
   return (
-    <div className="bg-surface hover:bg-surface-hover p-6 rounded-xl border border-border-primary shadow-lg transition-all duration-300 max-w-sm">
-      {/* Theme Badge */}
-      <div className="bg-surface-badge text-text-primary inline-block px-3 py-1 rounded-full text-sm mb-4 shadow-md shadow-shadow-badge">
-        {theme === "dark" ? "🌙 Dark Mode" : "☀️ Light Mode"}
-      </div>
-
-      {/* Title */}
-      <h3 className="text-text-primary text-xl font-semibold mb-2">
-        Premium Plan
-      </h3>
-
-      {/* Price */}
-      <div className="text-text-price text-3xl font-bold mb-4">$99.99</div>
-
-      {/* Description */}
-      <p className="text-text-secondary mb-6">
-        Complete solution with all premium features included for your business
-        needs.
-      </p>
-
-      {/* Features List */}
-      <ul className="space-y-3 mb-6">
-        <li className="flex items-center text-text-feature">
-          <svg
-            className="w-4 h-4 mr-3 text-brand-accent"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Unlimited Projects
-        </li>
-        <li className="flex items-center text-text-feature">
-          <svg
-            className="w-4 h-4 mr-3 text-brand-accent"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Priority Support
-        </li>
-        <li className="flex items-center text-text-feature">
-          <svg
-            className="w-4 h-4 mr-3 text-brand-accent"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Advanced Analytics
-        </li>
-        <li className="flex items-center text-text-feature">
-          <svg
-            className="w-4 h-4 mr-3 text-brand-accent"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Custom Integrations
-        </li>
-      </ul>
-
-      {/* Action Button */}
-      <button className="bg-brand-primary hover:bg-brand-hover w-full text-white py-3 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-shadow-action mb-4">
-        Choose Plan
-      </button>
-
-      {/* Compare Link */}
-      <div className="text-center">
-        <button className="text-brand-accent hover:bg-hover-brand px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border border-border-brand">
-          Compare Plans
-        </button>
-      </div>
+    <div className="flex min-h-screen bg-gradient-theme">
+      <SideChatBar
+        chats={chats}
+        activeChatId={activeChatId}
+        onSelectChat={setActiveChatId}
+        onCreateChat={handleCreateChat}
+        onRenameChat={handleRenameChat}
+        onDeleteChat={handleDeleteChat}
+      />
+      <main className="flex-1 flex flex-col justify-center">
+        <Navbar />
+        <ChatInterface
+          chat={chats.find((chat) => chat.id === activeChatId)}
+          onFileUploaded={handleFileUploaded}
+        />
+      </main>
     </div>
   );
-}
+};
 
 export default Home;

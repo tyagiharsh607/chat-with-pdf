@@ -13,7 +13,7 @@ class ChatCreate(ChatBase):
 
 class ChatInDB(ChatBase):
     id: UUID
-    userId: UUID
+    user_id: UUID
     created_at: datetime
 
 class ChatResponse(ChatInDB):
