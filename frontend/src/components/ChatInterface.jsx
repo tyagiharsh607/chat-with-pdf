@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { apiClient } from "../services/apiClient";
 import { PlusIcon, Loader } from "../utils/Icons";
+import FileHeader from "./FileHeader";
 
 const ChatInterface = ({ chat, onFileUploaded }) => {
   // State & refs
@@ -83,6 +84,16 @@ const ChatInterface = ({ chat, onFileUploaded }) => {
     if (!input.trim() || !activeChatId) return;
 
     const userMessageText = input.trim();
+
+    const optimisticUserMessage = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      role: "user",
+      content: userMessageText,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, optimisticUserMessage]);
+
     setInput("");
     setLoadingReply(true);
 
@@ -177,47 +188,57 @@ const ChatInterface = ({ chat, onFileUploaded }) => {
   // ---- Main Chat UI ----
   return (
     <div
-      className="relative flex flex-col flex-1 w-full bg-surface p-18  shadow-2xl border border-border-primary backdrop-blur-sm overflow-y-auto"
-      style={{ boxShadow: "0 8px 32px rgba(93, 95, 239, 0.3)" }}
+      className="minimal-scrollbar flex flex-col flex-1 w-full bg-surface p-8 shadow-2xl border border-border-primary backdrop-blur-sm"
+      style={{
+        boxShadow: "0 8px 32px rgba(93, 95, 239, 0.3)",
+        height: "100vh",
+        overflow: "hidden",
+      }}
     >
-      <div className="flex-1 overflow-y-auto space-y-4 px-2">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`w-fit max-w-[90%] p-4 rounded-2xl break-words ${
-              msg.role === "user"
-                ? "ml-auto bg-brand-primary text-white shadow-shadow-action"
-                : "mr-auto bg-surface-hover text-text-primary border border-border-primary"
-            }`}
-            style={{
-              boxShadow:
+      <div className="overflow-y-auto">
+        <FileHeader chat={chat} />
+        <div className="flex-1  space-y-4 px-2 py-20">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`w-fit max-w-[90%] p-4 rounded-2xl break-words ${
                 msg.role === "user"
-                  ? "0 4px 12px var(--color-shadow-action)"
-                  : "inset 0 0 10px var(--color-border-primary)",
-            }}
-          >
-            {msg.content || msg.text}
-          </div>
-        ))}
+                  ? "ml-auto bg-surface-hover text-text-primary border border-border-primary"
+                  : "mr-auto  text-text-primary border border-border-primary"
+              }`}
+              style={{
+                boxShadow:
+                  msg.role === "user"
+                    ? "inset 0 0 10px var(--color-border-primary)"
+                    : "",
+              }}
+            >
+              {msg.content || msg.text}
+            </div>
+          ))}
 
-        {/* Optional: Typing indicator */}
-        {loadingReply && (
-          <div
-            className="w-fit max-w-[90%] mr-auto p-4 rounded-2xl bg-surface-hover text-text-primary border border-border-primary italic"
-            style={{
-              boxShadow: "inset 0 0 10px var(--color-border-primary)",
-            }}
-          >
-            Assistant is typing...
-          </div>
-        )}
+          {/* Optional: Typing indicator */}
+          {loadingReply && (
+            <div className="w-fit max-w-[90%] mr-auto p-4 rounded-2xl bg-surface-hover text-text-primary border border-border-primary">
+              <div className="flex items-center space-x-3">
+                {/* Thinking icon */}
+                <div className="relative">
+                  <div className="w-6 h-6 bg-brand-primary rounded-full animate-pulse"></div>
+                  <div className="absolute inset-0 w-6 h-6 bg-brand-primary rounded-full animate-ping opacity-20"></div>
+                </div>
+                <span className="text-text-muted animate-pulse">
+                  Assistant is thinking...
+                </span>
+              </div>
+            </div>
+          )}
 
-        <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
-
       {/* Input Bar */}
       <div
-        className=" mt-4 flex items-center space-x-4 rounded-3xl bg-surface px-5 py-3"
+        className="fixed bottom-8  w-[93%] mt-4 flex items-center space-x-4 rounded-3xl bg-surface px-10 py-3"
         style={{
           backgroundColor: "var(--color-surface)",
           border: "1px solid var(--color-border-primary)",

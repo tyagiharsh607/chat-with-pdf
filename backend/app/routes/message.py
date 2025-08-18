@@ -13,12 +13,21 @@ def create_message(message: MessageCreate, current_user: dict = Depends(get_curr
     chat_id = message.chat_id
     print(f"Creating message for chat_id: {chat_id} by user: {current_user['user_id']}")
     
-
     # verify current user owns the chat before inserting message
     chat_res = supabase.table("chats").select("user_id").eq("id", chat_id).single().execute()
     if not chat_res.data or chat_res.data["user_id"] != current_user["user_id"]:
         raise HTTPException(status_code=403, detail="Not authorized to add messages to this chat")
 
+    # ✅ STEP 1: Generate assistant response FIRST (before any database writes)
+    try:
+        assistant_text = generate_assistant_response(message.content, chat_id)
+        print(f"✅ Assistant response generated successfully")
+        
+    except Exception as e:
+        print(f"❌ Error generating assistant response: {e}")
+        raise HTTPException(status_code=500, detail=f"Assistant generation failed: {e}")
+
+    # ✅ STEP 2: Only create user message AFTER assistant response succeeds
     user_message_data = {
         "id": str(uuid4()),
         "chat_id": chat_id,
@@ -29,20 +38,14 @@ def create_message(message: MessageCreate, current_user: dict = Depends(get_curr
 
     try:
         res = supabase.table("messages").insert(user_message_data).execute()
+        print(f"✅ User message stored successfully")
     except Exception as e:
-        print(f"Error inserting message: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to store message: {e}")
+        print(f"❌ Error inserting user message: {e}")
+        # Assistant response was generated but user message failed to store
+        # This is a rare edge case - you might want to handle this
+        raise HTTPException(status_code=500, detail=f"Failed to store user message: {e}")
 
-
-     # Generate assistant response using RAG
-    try:
-        assistant_text = generate_assistant_response(message.content, chat_id)
-        
-    except Exception as e:
-        print(f"Error generating assistant response: {e}")
-        raise HTTPException(status_code=500, detail=f"Assistant generation failed: {e}")
-
-    # Insert assistant message into DB
+    # ✅ STEP 3: Insert assistant message (both messages as a pair)
     assistant_message_data = {
         "id": str(uuid4()),
         "chat_id": chat_id,
@@ -50,13 +53,17 @@ def create_message(message: MessageCreate, current_user: dict = Depends(get_curr
         "content": assistant_text,
         "created_at": datetime.utcnow().isoformat()
     }
+    
     try:
         supabase.table("messages").insert(assistant_message_data).execute()
+        print(f"✅ Assistant message stored successfully")
     except Exception as e:
+        print(f"❌ Error inserting assistant message: {e}")
+        # Both user message and assistant response exist, but assistant message failed to store
+        # This creates an inconsistent state - user message without assistant response in DB
         raise HTTPException(status_code=500, detail=f"Failed to store assistant message: {e}")
 
-
-      # 5️⃣ Return updated list of messages for this chat
+    # ✅ STEP 4: Return updated list of messages for this chat
     try:
         msg_res = supabase.table("messages").select("*").eq("chat_id", chat_id).order("created_at").execute()
         messages = msg_res.data if hasattr(msg_res, "data") else msg_res
@@ -64,7 +71,7 @@ def create_message(message: MessageCreate, current_user: dict = Depends(get_curr
         raise HTTPException(status_code=500, detail=f"Failed to fetch updated messages: {e}")
 
     return messages
-    
+
 
 @router.get("/{chat_id}", response_model=list[MessageInDB])
 def get_messages(chat_id: str, current_user: dict = Depends(get_current_user)):

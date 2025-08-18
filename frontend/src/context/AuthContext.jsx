@@ -190,6 +190,34 @@ export const AuthProvider = ({ children }) => {
     return true;
   };
 
+  const isUserLoggedIn = () => {
+    try {
+      const accessToken = localStorage.getItem("chat_pdf_access_token");
+      const expiresAt = localStorage.getItem("chat_pdf_token_expires_at");
+      const userId = localStorage.getItem("chat_pdf_user_id");
+
+      // Check if token exists
+      if (!accessToken || !expiresAt || !userId) {
+        return false;
+      }
+
+      // Check if token is expired
+      const currentTime = Date.now();
+      const tokenExpiryTime = parseInt(expiresAt, 10);
+
+      if (currentTime >= tokenExpiryTime) {
+        // Token expired, clean up storage
+        clearAuthData();
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Auth check error:", error);
+      return false;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -199,6 +227,7 @@ export const AuthProvider = ({ children }) => {
     getAuthHeader,
     checkTokenExpiry,
     clearAuthData,
+    isUserLoggedIn,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

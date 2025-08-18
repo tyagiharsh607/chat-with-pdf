@@ -13,10 +13,8 @@ const Home = () => {
     const fetchChats = async () => {
       try {
         const response = await apiClient.get("/chats");
+        console.log("Fetched chats:", response.data);
         setChats(response.data || []);
-        if (response.data?.length > 0) {
-          setActiveChatId(response.data[0].id);
-        }
       } catch (error) {
         console.error("Failed to fetch chats:", error);
       }
@@ -57,11 +55,9 @@ const Home = () => {
   // Delete a chat by ID
   const handleDeleteChat = async (chatId) => {
     try {
-      await apiClient.delete(`/chats/${chatId}`);
+      const res = await apiClient.delete(`/chats/${chatId}`);
+      console.log("Chat deleted:", res.data);
       setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
-      if (activeChatId === chatId) {
-        setActiveChatId(prevChats[0]?.id || null);
-      }
     } catch (error) {
       console.error("Failed to delete chat:", error);
     }
@@ -93,7 +89,7 @@ const Home = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-theme">
+    <div className="flex  h-screen overflow-hidden bg-gradient-theme">
       <SideChatBar
         chats={chats}
         activeChatId={activeChatId}

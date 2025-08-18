@@ -9,7 +9,7 @@ const SideChatBar = ({
   onDeleteChat,
 }) => {
   return (
-    <aside className="w-80 min-h-full bg-surface border-r border-border-primary shadow-lg shadow-shadow-modal p-4 flex flex-col">
+    <aside className=" minimal-scrollbar w-80 min-h-full bg-surface border-r border-border-primary shadow-lg shadow-shadow-modal p-4 flex flex-col">
       <button
         className="cursor-pointer bg-brand-primary hover:bg-brand-hover text-white font-semibold py-3 px-4 rounded-2xl shadow mb-6 transition-colors duration-200"
         onClick={onCreateChat}

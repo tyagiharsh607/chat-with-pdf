@@ -3,7 +3,7 @@ from app.embeddings import model  # your embedding model instance (e.g., Sentenc
 from app.qdrant_client import qdrant, COLLECTION_NAME  # your Qdrant client and collection name
 from qdrant_client.http.models import Filter, FieldCondition, MatchValue
 import google.generativeai as genai
-
+import time
 
 import os
 
@@ -25,33 +25,55 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
     Given a user query and chat_id, perform vector retrieval of relevant chunks
     and then generate the assistant's response using Gemini model via Vertex AI.
     """
-
+    
+    
     filter_obj = Filter(
-    must=[
-        FieldCondition(
-            key="chat_id",
-            match=MatchValue(value=chat_id)  # your chat id variable here
-        )
-    ]
-)
-
+        must=[
+            FieldCondition(
+                key="chat_id",
+                match=MatchValue(value=chat_id)
+            )
+        ]
+    )
+    
     # Step 1: Embed the query (list of one item)
     query_vector = model.encode([query])[0]
-
-    # Step 2: Search nearest chunks in Qdrant filtered by chat_id
-    search_result = qdrant.search(
-        collection_name=COLLECTION_NAME,
-        query_vector=query_vector,
-        query_filter=filter_obj,
-        limit=top_k,
-        
-    )
-
+    
+    # Step 2: Search nearest chunks in Qdrant with retry logic
+    max_retries = 3
+    retry_delay = 1  # seconds
+    search_result = None
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Attempting Qdrant search (attempt {attempt + 1}/{max_retries})")
+            
+            search_result = qdrant.search(
+                collection_name=COLLECTION_NAME,
+                query_vector=query_vector,
+                query_filter=filter_obj,
+                limit=top_k,
+            )
+            
+            print(f"✅ Qdrant search successful on attempt {attempt + 1}")
+            break  # Success - exit retry loop
+            
+        except Exception as e:
+            if attempt == max_retries - 1:  # Last attempt failed
+                print(f"❌ Qdrant search failed after {max_retries} attempts: {e}")
+                return "I'm having trouble accessing the document right now. Please try again in a moment."
+            else:
+                print(f"⚠️ Qdrant search attempt {attempt + 1} failed: {e}")
+                print(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+    
     # Step 3: Extract text payloads of found chunks
     chunks_texts: List[str] = [hit.payload.get("text", "") for hit in search_result if hit.payload]
+    
     if not chunks_texts:
         return "I couldn't find relevant information in the uploaded file to answer that."
-
+    
     print(f"Found {len(chunks_texts)} relevant chunks for chat_id {chat_id}.")
     print(f"Chunks texts: {chunks_texts}")
     
@@ -62,7 +84,7 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
         f"Context:\n{context}\n\n"
         f"Question: {query}\nAnswer:"
     )
-
+    
     # Step 5: Call the Gemini Model for text generation
     return call_gemini_text_generation(prompt_text)
 
