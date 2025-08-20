@@ -16,7 +16,9 @@ export const AuthProvider = ({ children }) => {
 
   // In your AuthContext.jsx
   const refreshSession = async () => {
+    console.log("Refreshing session...");
     const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
+    console.log("Refresh token:", refreshToken);
 
     if (!refreshToken) {
       logout();
@@ -30,6 +32,8 @@ export const AuthProvider = ({ children }) => {
         { headers: { "Content-Type": "application/json" } }
       );
 
+      console.log("Refresh response:", response.data);
+
       if (response.status !== 200) {
         logout();
         return false;
@@ -40,17 +44,22 @@ export const AuthProvider = ({ children }) => {
       // Update stored tokens with new ones
       localStorage.setItem("chat_pdf_access_token", data.access_token);
       localStorage.setItem("chat_pdf_refresh_token", data.refresh_token);
+      localStorage.setItem("chat_pdf_user_id", data.user_id); // ✅ Add this too
+      localStorage.setItem("chat_pdf_user_email", data.email); // ✅ Add this too
       localStorage.setItem(
         "chat_pdf_token_expires_at",
         Date.now() + 3600 * 1000
-      ); // 1 hour
+      );
 
-      // Update user state
-      setUser((prev) => ({
-        ...prev,
+      setUser({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
-      }));
+        user_id: data.user_id,
+        email: data.email,
+      });
+
+      setIsAuthenticated(true);
+      console.log("✅ User authenticated after refresh");
 
       return true;
     } catch (error) {
@@ -62,11 +71,15 @@ export const AuthProvider = ({ children }) => {
 
   // Update checkAuthStatus to use refresh instead of immediate logout
   const checkAuthStatus = async () => {
+    console.log("Checking auth status...");
     try {
       const accessToken = localStorage.getItem("chat_pdf_access_token");
       const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
       const expiresAt = localStorage.getItem("chat_pdf_token_expires_at");
 
+      console.log("Access token:", accessToken);
+      console.log("Refresh token:", refreshToken);
+      console.log("Token expires at:", expiresAt);
       if (!accessToken || !refreshToken) {
         clearAuthData();
         return;
@@ -74,8 +87,10 @@ export const AuthProvider = ({ children }) => {
 
       const now = Date.now();
       const tokenExpiresAt = parseInt(expiresAt);
+      console.log("Current time:", now, "Token expires at:", tokenExpiresAt);
 
       if (now < tokenExpiresAt) {
+        console.log("Token is still valid");
         // Token still valid
         setUser({
           access_token: accessToken,
@@ -86,9 +101,10 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
       } else {
         // Token expired - try to refresh
+        console.log("Token expired, trying to refresh...");
         const refreshed = await refreshSession();
+        console.log("Refreshed session:", refreshed);
         if (!refreshed) {
-          // Refresh failed - user needs to login again
           clearAuthData();
         }
       }
@@ -157,7 +173,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("chat_pdf_user_id");
     localStorage.removeItem("chat_pdf_user_email");
     localStorage.removeItem("chat_pdf_token_expires_at");
-
     setUser(null);
     setIsAuthenticated(false);
     setLoading(false);
@@ -207,7 +222,7 @@ export const AuthProvider = ({ children }) => {
 
       if (currentTime >= tokenExpiryTime) {
         // Token expired, clean up storage
-        clearAuthData();
+        // clearAuthData();
         return false;
       }
 

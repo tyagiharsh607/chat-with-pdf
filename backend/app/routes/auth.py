@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from starlette.status import HTTP_400_BAD_REQUEST
-from app.models.user import SignupRequest, LoginRequest, AuthResponse
+from app.models.user import SignupRequest, LoginRequest, AuthResponse, RefreshTokenRequest
 from app.supabase_client import get_supabase
 from app.middlewares.auth_middleware import get_current_user
 import logging
@@ -151,16 +151,19 @@ async def get_profile(current_user = Depends(get_current_user)):
 
 
 
+
 @router.post("/refresh-token")
-async def refresh_access_token(refresh_token: str, supabase=Depends(get_supabase)):
+async def refresh_access_token(request: RefreshTokenRequest, supabase=Depends(get_supabase)):
     """
     Refresh access token using refresh token
     """
     try:
         logger.info("Token refresh request received")
+        print(f"Received refresh token: {request.refresh_token}")  # ✅ Access via request.refresh_token
         
         # Use Supabase Python client to refresh the session
-        result = supabase.auth.refresh_session(refresh_token)
+        result = supabase.auth.refresh_session(request.refresh_token)  # ✅ Use request.refresh_token
+        print(f"Token refresh result: {result}")
         
         if result.session is None:
             logger.error("Failed to refresh session - invalid refresh token")

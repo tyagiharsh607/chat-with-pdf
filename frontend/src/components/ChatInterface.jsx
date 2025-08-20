@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { apiClient } from "../services/apiClient";
 import { PlusIcon, Loader } from "../utils/Icons";
 import FileHeader from "./FileHeader";
+import ReactMarkdown from "react-markdown";
 
 const ChatInterface = ({ chat, onFileUploaded }) => {
   // State & refs
@@ -197,14 +198,14 @@ const ChatInterface = ({ chat, onFileUploaded }) => {
     >
       <div className="overflow-y-auto">
         <FileHeader chat={chat} />
-        <div className="flex-1  space-y-4 px-2 py-20">
+        <div className="flex-1 space-y-4 px-2 py-20">
           {messages.map((msg) => (
             <div
               key={msg.id}
               className={`w-fit max-w-[90%] p-4 rounded-2xl break-words ${
                 msg.role === "user"
                   ? "ml-auto bg-surface-hover text-text-primary border border-border-primary"
-                  : "mr-auto  text-text-primary border border-border-primary"
+                  : "mr-auto text-text-primary border border-border-primary"
               }`}
               style={{
                 boxShadow:
@@ -213,7 +214,56 @@ const ChatInterface = ({ chat, onFileUploaded }) => {
                     : "",
               }}
             >
-              {msg.content || msg.text}
+              {/* ✅ Render assistant messages with Markdown */}
+              {msg.role === "assistant" ? (
+                <div className="prose prose-invert max-w-none space-y-2">
+                  <ReactMarkdown
+                    components={{
+                      // Custom styling for different elements
+                      strong: ({ children }) => (
+                        <strong className="text-brand-primary font-semibold">
+                          {children}
+                        </strong>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside space-y-1 mt-2">
+                          {children}
+                        </ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-text-secondary ml-2">{children}</li>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-semibold text-text-primary mt-4 mb-2">
+                          {children}
+                        </h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-2 leading-relaxed text-text-primary">
+                          {children}
+                        </p>
+                      ),
+                      // Handle **bold** text within paragraphs
+                      em: ({ children }) => (
+                        <em className="italic text-text-secondary">
+                          {children}
+                        </em>
+                      ),
+                      // Handle code blocks
+                      code: ({ children }) => (
+                        <code className="bg-surface-hover px-1 py-0.5 rounded text-brand-accent text-sm">
+                          {children}
+                        </code>
+                      ),
+                    }}
+                  >
+                    {msg.content || msg.text}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                // ✅ Keep user messages as plain text
+                msg.content || msg.text
+              )}
             </div>
           ))}
 
@@ -236,6 +286,7 @@ const ChatInterface = ({ chat, onFileUploaded }) => {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
       {/* Input Bar */}
       <div
         className="fixed bottom-8  w-[93%] mt-4 flex items-center space-x-4 rounded-3xl bg-surface px-10 py-3"

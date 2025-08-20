@@ -20,3 +20,6 @@ class AuthResponse(BaseModel):
     email: str
     message: str = "Authentication successful"  # Add message field
     requires_confirmation: bool = False 
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
