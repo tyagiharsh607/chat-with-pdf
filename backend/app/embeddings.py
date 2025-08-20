@@ -1,4 +1,4 @@
 from sentence_transformers import SentenceTransformer
 
 # Using HuggingFace model for embeddings
-model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
+model = SentenceTransformer("paraphrase-MiniLM-L3-v2", device="cpu")
