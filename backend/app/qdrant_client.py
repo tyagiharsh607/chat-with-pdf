@@ -18,7 +18,6 @@ qdrant = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
 def ensure_collection_exists():
     existing = qdrant.get_collections()
-    print("existing", existing)
     if COLLECTION_NAME not in [col.name for col in existing.collections]:
         qdrant.create_collection(
             collection_name=COLLECTION_NAME,
@@ -27,7 +26,7 @@ def ensure_collection_exists():
                 distance=Distance.COSINE
             )
         )
-        print(f"Collection '{COLLECTION_NAME}' created.")
+
 
 
 # Create payload index on chat_id field for filtering
@@ -38,7 +37,7 @@ def ensure_payload_index():
             field_name="chat_id",
             field_schema=PayloadSchemaType.KEYWORD,  
         )
-        print("Payload index on 'chat_id' created.")
+
     except Exception as e:
-        print(f"Payload index creation failed or already exists: {e}")
+        raise RuntimeError(f"Failed to create payload index: {e}")
 

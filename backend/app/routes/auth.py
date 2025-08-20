@@ -26,7 +26,7 @@ async def signup(payload: SignupRequest, supabase=Depends(get_supabase)):
             "password": payload.password
         })
         logger.info(f"Signup attempt: {result}")
-        print(f"Signup attempt: {result}")  # Debugging line
+
 
         # Check for user in result (object, not dict!)
         if result.user is None:
@@ -44,7 +44,7 @@ async def signup(payload: SignupRequest, supabase=Depends(get_supabase)):
         user = result.user
 
         logger.info(f"User signed up successfully: {user}")
-        print(f"User signed up successfully: {user}")  # Debugging line
+
 
         # Handle email confirmation required case
         if session is None:
@@ -85,7 +85,7 @@ async def login(payload: LoginRequest, supabase=Depends(get_supabase)):
         })
 
         logger.info(f"Login attempt result: {result}")
-        print(f"Login attempt result: {result}")  # Debugging line
+
 
         # Check if user exists (using attribute access, not dictionary)
         if result.user is None:
@@ -107,7 +107,7 @@ async def login(payload: LoginRequest, supabase=Depends(get_supabase)):
         user = result.user
         
         logger.info(f"User logged in successfully: {user.email}")
-        print(f"User logged in successfully: {user.email}")  # Debugging line
+
 
         return AuthResponse(
             access_token=session.access_token,
@@ -159,11 +159,11 @@ async def refresh_access_token(request: RefreshTokenRequest, supabase=Depends(ge
     """
     try:
         logger.info("Token refresh request received")
-        print(f"Received refresh token: {request.refresh_token}")  # ✅ Access via request.refresh_token
+
         
         # Use Supabase Python client to refresh the session
         result = supabase.auth.refresh_session(request.refresh_token)  # ✅ Use request.refresh_token
-        print(f"Token refresh result: {result}")
+
         
         if result.session is None:
             logger.error("Failed to refresh session - invalid refresh token")

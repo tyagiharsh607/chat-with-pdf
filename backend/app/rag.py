@@ -29,7 +29,7 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
     
     # ✅ Step 1: Get recent conversation history
     try:
-        print(f"📝 Fetching conversation history for chat_id: {chat_id}")
+
         recent_messages = supabase.table("messages")\
             .select("role, content")\
             .eq("chat_id", chat_id)\
@@ -42,12 +42,10 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
         if recent_messages.data and len(recent_messages.data) > 1:
             for msg in recent_messages.data:  # Exclude the last message (current user message)
                 conversation_history += f"{msg['role']}: {msg['content']}\n"
-            print(f"📚 Found {len(recent_messages.data) - 1} previous messages for context")
-        else:
-            print("📚 No previous conversation history found")
+
             
     except Exception as e:
-        print(f"⚠️ Failed to fetch conversation history: {e}")
+
         conversation_history = ""
     
     # ✅ Step 2: Vector search with retry logic (unchanged)
@@ -70,7 +68,7 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
     
     for attempt in range(max_retries):
         try:
-            print(f"Attempting Qdrant search (attempt {attempt + 1}/{max_retries})")
+
             
             search_result = qdrant.search(
                 collection_name=COLLECTION_NAME,
@@ -79,16 +77,16 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
                 limit=top_k,
             )
             
-            print(f"✅ Qdrant search successful on attempt {attempt + 1}")
+
             break  # Success - exit retry loop
             
         except Exception as e:
             if attempt == max_retries - 1:  # Last attempt failed
-                print(f"❌ Qdrant search failed after {max_retries} attempts: {e}")
+
                 return "I'm having trouble accessing the document right now. Please try again in a moment."
             else:
-                print(f"⚠️ Qdrant search attempt {attempt + 1} failed: {e}")
-                print(f"Retrying in {retry_delay} seconds...")
+
+
                 time.sleep(retry_delay)
                 retry_delay *= 2  # Exponential backoff
     
@@ -107,8 +105,8 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
         else:
             return "I couldn't find relevant information in the uploaded file to answer that."
     
-    print(f"Found {len(chunks_texts)} relevant chunks for chat_id {chat_id}.")
-    print(f"Chunks texts: {chunks_texts[:2]}...")  # Show first 2 chunks only
+
+
     
     # ✅ Step 4: Build enhanced context prompt with conversation history
     document_context = "\n\n".join(chunks_texts)
@@ -126,7 +124,7 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
             "- If the question relates to something we discussed before, acknowledge that connection\n\n"
             "Answer:"
         )
-        print("promt_text:", prompt_text)  # Debugging line
+
     else:
         # Fallback to original prompt if no conversation history
         prompt_text = (
@@ -134,8 +132,8 @@ def generate_assistant_response(query: str, chat_id: str, top_k: int = 5) -> str
             f"Context:\n{document_context}\n\n"
             f"Question: {query}\nAnswer:"
         )
-        print("promt_text:", prompt_text)  
-    print(f"🧠 Using conversation context: {len(conversation_history) > 0}")
+
+
     
     # Step 5: Call the Gemini Model for text generation
     return call_gemini_text_generation(prompt_text)
@@ -171,7 +169,7 @@ def call_gemini_text_generation(prompt: str) -> str:
                                 actual_part = next(iter(first_part))
                                 if hasattr(actual_part, 'text'):
                                     generated_text = actual_part.text.strip()
-                                    print(f"✅ Gemini response generated: {len(generated_text)} characters")
+
                                     return generated_text
                             except (StopIteration, TypeError):
                                 pass
@@ -179,7 +177,7 @@ def call_gemini_text_generation(prompt: str) -> str:
                         # ✅ Try direct text access
                         if hasattr(first_part, 'text'):
                             generated_text = first_part.text.strip()
-                            print(f"✅ Gemini response generated: {len(generated_text)} characters")
+
                             return generated_text
                         
                         # ✅ Try alternative attribute names
@@ -187,14 +185,14 @@ def call_gemini_text_generation(prompt: str) -> str:
                             if hasattr(first_part, attr):
                                 text_value = getattr(first_part, attr)
                                 if isinstance(text_value, str) and text_value.strip():
-                                    print(f"✅ Gemini response found via '{attr}': {len(text_value)} characters")
+
                                     return text_value.strip()
         
         return "[EMPTY_RESPONSE] No valid text returned by Gemini."
 
     except Exception as e:
         error_message = str(e)
-        print(f"❌ Exception in Gemini API call: {error_message}")
+
         
         if "429" in error_message and "quota" in error_message.lower():
             return "[RATE_LIMITED] Gemini API quota exceeded. Try again later."

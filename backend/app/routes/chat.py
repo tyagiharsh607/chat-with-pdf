@@ -45,7 +45,7 @@ def get_user_chats(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Failed to fetch chats: {e}")
 
     chats = res.data if hasattr(res, "data") else res
-    print(f"Fetched chats: {chats}")
+
 
     return chats
 

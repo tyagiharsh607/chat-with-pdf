@@ -89,11 +89,11 @@ def extract_filename_from_url(file_url: str) -> Optional[str]:
             # Get everything after 'documents/' (this is the filename in storage)
             filename = parts[1]
             filename = filename.split('?')[0]
-            print(f"🔍 Cleaned filename: {filename}")
+
             return filename
         return None
     except Exception as e:
-        print(f"Error extracting filename from URL: {e}")
+
         return None
 
 
@@ -123,13 +123,13 @@ def delete_file_and_chunks(file_url: str, chat_id: str):
             if filename:
                 supabase.storage.from_("documents").remove([filename])
                 results["file_deleted"] = True
-                print(f"✅ Deleted file: {filename}")
+
             else:
                 results["errors"].append("Could not extract filename from URL")
         except Exception as e:
             error_msg = f"Failed to delete file from storage: {e}"
             results["errors"].append(error_msg)
-            print(f"⚠️ {error_msg}")
+
     
     # Step 2: Delete chunks from Qdrant
     max_retries = 3
@@ -149,15 +149,15 @@ def delete_file_and_chunks(file_url: str, chat_id: str):
                 )
             )
             results["chunks_deleted"] = True
-            print(f"✅ Deleted Qdrant chunks for chat_id: {chat_id}")
+
             break
         except Exception as e:
             if attempt == max_retries - 1:  # Last attempt
                 error_msg = f"Failed to delete chunks from Qdrant after {max_retries} attempts: {e}"
                 results["errors"].append(error_msg)
-                print(f"⚠️ {error_msg}")
+
             else:
-                print(f"⚠️ Qdrant attempt {attempt + 1} failed, retrying: {e}")
+
                 time.sleep(1)  # Wait 1 second before retry
     
     return results

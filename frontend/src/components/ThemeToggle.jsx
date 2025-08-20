@@ -5,7 +5,6 @@ function ThemeToggle() {
 
   const handleToggle = () => {
     const newTheme = theme === "light" ? "dark" : "light";
-    console.log("Toggling theme from", theme, "to", newTheme);
     toggleTheme(newTheme);
   };
 

@@ -13,7 +13,6 @@ const Home = () => {
     const fetchChats = async () => {
       try {
         const response = await apiClient.get("/chats");
-        console.log("Fetched chats:", response.data);
         setChats(response.data || []);
       } catch (error) {
         console.error("Failed to fetch chats:", error);
@@ -56,11 +55,8 @@ const Home = () => {
   const handleDeleteChat = async (chatId) => {
     try {
       const res = await apiClient.delete(`/chats/${chatId}`);
-      console.log("Chat deleted:", res.data);
       setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
-    } catch (error) {
-      console.error("Failed to delete chat:", error);
-    }
+    } catch (error) {}
   };
 
   const handleFileUploaded = async () => {
@@ -81,8 +77,6 @@ const Home = () => {
           setActiveChatId(null);
         }
       }
-
-      console.log("Chats updated after file upload.");
     } catch (error) {
       console.error("Failed to refresh chats after upload:", error);
     }

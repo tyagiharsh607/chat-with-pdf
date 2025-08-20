@@ -16,9 +16,7 @@ export const AuthProvider = ({ children }) => {
 
   // In your AuthContext.jsx
   const refreshSession = async () => {
-    console.log("Refreshing session...");
     const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
-    console.log("Refresh token:", refreshToken);
 
     if (!refreshToken) {
       logout();
@@ -31,8 +29,6 @@ export const AuthProvider = ({ children }) => {
         { refresh_token: refreshToken },
         { headers: { "Content-Type": "application/json" } }
       );
-
-      console.log("Refresh response:", response.data);
 
       if (response.status !== 200) {
         logout();
@@ -59,7 +55,6 @@ export const AuthProvider = ({ children }) => {
       });
 
       setIsAuthenticated(true);
-      console.log("✅ User authenticated after refresh");
 
       return true;
     } catch (error) {
@@ -71,15 +66,11 @@ export const AuthProvider = ({ children }) => {
 
   // Update checkAuthStatus to use refresh instead of immediate logout
   const checkAuthStatus = async () => {
-    console.log("Checking auth status...");
     try {
       const accessToken = localStorage.getItem("chat_pdf_access_token");
       const refreshToken = localStorage.getItem("chat_pdf_refresh_token");
       const expiresAt = localStorage.getItem("chat_pdf_token_expires_at");
 
-      console.log("Access token:", accessToken);
-      console.log("Refresh token:", refreshToken);
-      console.log("Token expires at:", expiresAt);
       if (!accessToken || !refreshToken) {
         clearAuthData();
         return;
@@ -87,10 +78,8 @@ export const AuthProvider = ({ children }) => {
 
       const now = Date.now();
       const tokenExpiresAt = parseInt(expiresAt);
-      console.log("Current time:", now, "Token expires at:", tokenExpiresAt);
 
       if (now < tokenExpiresAt) {
-        console.log("Token is still valid");
         // Token still valid
         setUser({
           access_token: accessToken,
@@ -101,9 +90,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
       } else {
         // Token expired - try to refresh
-        console.log("Token expired, trying to refresh...");
         const refreshed = await refreshSession();
-        console.log("Refreshed session:", refreshed);
         if (!refreshed) {
           clearAuthData();
         }

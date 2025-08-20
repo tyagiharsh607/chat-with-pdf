@@ -2,7 +2,6 @@ import { apiClient } from "./apiClient";
 import axios from "axios";
 
 const API_BASE = `${import.meta.env.VITE_BACKEND_URL}/api`;
-console.log("API_BASE:", API_BASE);
 
 export const loginUser = async (data) => {
   try {
@@ -26,12 +25,10 @@ export const loginUser = async (data) => {
 
 export const signupUser = async (data) => {
   try {
-    console.log("Signing up with url:", `${API_BASE}/auth/signup`);
     const res = await axios.post(`${API_BASE}/auth/signup`, {
       email: data.email,
       password: data.password,
     });
-    console.log("Signup response:", res.data);
     return res.data;
   } catch (error) {
     const errorMessage = error.response?.data?.detail || "Signup failed";

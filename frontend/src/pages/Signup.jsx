@@ -55,7 +55,6 @@ const Signup = () => {
 
     try {
       const response = await signupUser(formData);
-      console.log("Signup response:", response);
 
       const loginResult = login(response);
 
