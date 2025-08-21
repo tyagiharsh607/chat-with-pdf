@@ -9,7 +9,10 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({
+    email: "tyagiharsh607@gmail.com",
+    password: "W0lf!Pack^Sky#918",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
