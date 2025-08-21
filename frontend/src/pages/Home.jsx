@@ -92,7 +92,7 @@ const Home = () => {
         onRenameChat={handleRenameChat}
         onDeleteChat={handleDeleteChat}
       />
-      <main className="flex-1 flex flex-col justify-center">
+      <main className="flex-1 flex flex-col">
         <Navbar />
         <ChatInterface
           chat={chats.find((chat) => chat.id === activeChatId)}
