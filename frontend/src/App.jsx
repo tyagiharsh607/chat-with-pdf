@@ -9,7 +9,6 @@ import PrivateRoute from "./components/PrivateRoute";
 import PublicRoute from "./components/PublicRoute";
 
 function App() {
-  console.log("Backend URL:", import.meta.env.VITE_BACKEND_URL);
   return (
     <Router>
       {/* <Navbar /> */}
