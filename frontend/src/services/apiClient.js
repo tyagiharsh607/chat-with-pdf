@@ -3,7 +3,7 @@ const createApiClient = () => {
   const api = axios.create({
     baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
   });
-   console.log("Axios instance baseURL 1:", api.defaults.baseURL);
+ 
 
   // Request interceptor to add auth header
   api.interceptors.request.use((config) => {
@@ -56,7 +56,7 @@ const createApiClient = () => {
       return Promise.reject(error);
     }
   );
- console.log("Axios instance baseURL 2:", api.defaults.baseURL);
+
   return api;
 };
 
